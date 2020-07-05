@@ -1,0 +1,100 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, error = FALSE, warning = FALSE)
+```
+
+## NTL Study Group Programming Task #1 - Health Data analysis
+Code for this task will be demonstrated in both R & Python
+
+### Data 
+Data can be obtained from this [link](https://data.cdc.gov/NCHS/NCHS-Leading-Causes-of-Death-United-States/bi63-dtpu)
+
+Data is downloaded and read from local harddisk
+
+We start by loading needed libraries and reading the data
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(reticulate)
+
+NHCS_data <- read.csv("NCHS.csv")
+death_data <- read.csv("Death data.csv")
+```
+
+NHCS data file has ```r ncol(NHCS_data)``` columns & ```r nrow(NHCS_data)``` rows
+Death data file has ```r ncol(death_data)``` columns & ```r nrow(death_data)``` rows
+
+We start by checking how our data is structured
+```{r}
+str(NHCS_data)
+str(death_data)
+```
+
+### Objectives
+After checking structure of our data, we will use NHCS dataser to answer the few questions we have in hand .. 
+
+1. What were the causes of death in this dataset?
+```{r Q1}
+Unique_causes <- unique(NHCS_data$Cause.Name)
+Unique_causes[Unique_causes != "All Causes"]
+```
+
+2. What was the total number of deaths in the united states from 1999 to 2015?
+```{r Q2}
+# First we get a filtered version of our dataset
+total_death_data <- filter(NHCS_data, NHCS_data$Year >= 1999 & NHCS_data$Year <= 2015, NHCS_data$Cause.Name == "All Causes", NHCS_data$State != "United States")
+
+total_death <- sum(total_death_data$Deaths, na.rm = TRUE)
+```
+Total number of death is ```r total_death```
+
+3. What is the number of deaths per year from 1999 to 2015?
+```{r Q3}
+# Sum Death per Year from 1999 to 2015
+death_per_year <- aggregate(total_death_data['Deaths'], by=total_death_data['Year'], sum,na.rm=TRUE, na.action=NULL)
+
+# Display death_per_year in a table
+kable(death_per_year) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
+
+# Display Sum of Deaths per year from 1999 to 2015
+ggplot(death_per_year, aes(Year, Deaths)) + geom_line()+labs(title = "Sum of Deaths per Year in the USA from 1999 to 2015")
+```
+
+4. Which states had the highest number of deaths overall?
+```{r Q4}
+# Sum Death per Year from 1999 to 2015
+death_per_states <- aggregate(total_death_data['Deaths'], by=total_death_data['State'], sum,na.rm=TRUE, na.action=NULL)
+
+# Display top 10 states with highest deaths in a table
+kable(death_per_states[
+    order( -death_per_states[,2]),
+    ][1:10,]) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
+
+# Display top 10 states with highest deaths
+ggplot(death_per_states[
+    order( -death_per_states[,2]),
+    ][1:10,], aes(State, Deaths)) + geom_bar(stat = "identity", fill="blue", alpha=0.5)+labs(title = "Top 10 Deaths per State in the USA from 1999 to 2015") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0))
+```
+
+5. What were top causes of death in the USA in this period?
+```{r Q5}
+# Sum Death per Cause from 1999 to 2015
+total_USA_data <- filter(NHCS_data, NHCS_data$Year >= 1999 & NHCS_data$Year <= 2015, NHCS_data$Cause.Name != "All Causes", NHCS_data$State == "United States")
+
+USA_data <- aggregate(total_USA_data['Deaths'], by=total_USA_data['Cause.Name'], sum,na.rm=TRUE, na.action=NULL)
+
+# Display top 10 states with highest deaths in a table
+kable(USA_data[
+    order( -USA_data[,2]),
+    ][1:10,]) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left")
+
+# Display top 10 states with highest deaths
+ggplot(USA_data[
+    order( -USA_data[,2]),
+    ][1:10,], aes(Cause.Name, Deaths)) + geom_bar(stat = "identity", fill="blue", alpha=0.5)+labs(title = "Top 10 Deaths per Cause in the USA from 1999 to 2015") + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0))
+```
